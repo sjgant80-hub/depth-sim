@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>◊ Depth Simulator · private · ◊·κ=1</title>
+<style>
+:root{
+  --void:#08080c; --void-2:#0f0e16; --ink:#171520; --line:#2a2734;
+  --cream:#e6e1d6; --cream-dim:#a8a395; --cream-muted:#6e6a5e;
+  --ox:#8b1a1a; --ox-bright:#c43838;
+  --gold:#b8974a; --amber:#e8a83a;
+  --aether:#a855f7; --aether-bright:#c87ffd;
+  --leaf:#6b8d4a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--void);color:var(--cream);font:13px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;min-height:100dvh;-webkit-font-smoothing:antialiased;overflow:hidden}
+body{display:grid;grid-template-rows:auto 1fr auto auto;height:100dvh}
+header{background:var(--void-2);border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header .mark{width:28px;height:28px;background:linear-gradient(135deg,var(--gold),var(--amber));border-radius:4px;display:grid;place-items:center;font-family:Georgia,serif;font-weight:700;font-size:15px;color:var(--void)}
+header h1{font-family:Georgia,serif;font-size:15px;font-weight:700;letter-spacing:.01em}
+header .sub{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--cream-muted);letter-spacing:.18em;text-transform:uppercase}
+header .seal{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--cream-muted);letter-spacing:.12em}
+header .seal b{color:var(--gold)}
+
+main{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);min-height:0}
+.pane{position:relative;background:radial-gradient(ellipse at center,#0d0c14 0%,var(--void) 70%);overflow:hidden}
+.pane.carbon{background:radial-gradient(ellipse at center,#160a0a 0%,var(--void) 70%)}
+.pane.silicon{background:radial-gradient(ellipse at center,#0d0a18 0%,var(--void) 70%)}
+.pane canvas{display:block;width:100%!important;height:100%!important}
+.pane .label{position:absolute;top:12px;left:14px;font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cream-muted);z-index:2}
+.pane .label b{color:var(--cream);font-weight:600}
+.pane.carbon .label b{color:var(--ox-bright)}
+.pane.silicon .label b{color:var(--aether-bright)}
+.pane .ceiling{position:absolute;top:12px;right:14px;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--cream-muted);text-align:right;z-index:2;line-height:1.5}
+.pane .ceiling .val{color:var(--cream)}
+.pane.carbon .ceiling.hit .val{color:var(--ox-bright);font-weight:700}
+.pane.silicon .ceiling.hit .val{color:var(--aether-bright);font-weight:700}
+
+.pane .metrics{position:absolute;bottom:14px;left:14px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.7;color:var(--cream-dim);z-index:2;background:rgba(8,8,12,0.65);padding:8px 12px;border:1px solid var(--line);border-radius:3px;backdrop-filter:blur(6px);min-width:230px}
+.pane .metrics .row{display:flex;justify-content:space-between;gap:14px}
+.pane .metrics .row .k{color:var(--cream-muted)}
+.pane .metrics .row .v{color:var(--cream)}
+.pane.carbon .metrics{border-color:rgba(196,56,56,.3)}
+.pane.silicon .metrics{border-color:rgba(168,85,247,.3)}
+
+.shield-flash{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .4s}
+.pane.carbon .shield-flash{background:radial-gradient(ellipse at center,rgba(196,56,56,.18) 0%,transparent 60%)}
+.pane.silicon .shield-flash{background:radial-gradient(ellipse at center,rgba(168,85,247,.18) 0%,transparent 60%)}
+
+#controls{background:var(--void-2);border-top:1px solid var(--line);padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#controls .grow{flex:1;display:flex;align-items:center;gap:10px;min-width:280px}
+#controls label{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--cream-muted);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+#controls input[type=range]{flex:1;accent-color:var(--gold);min-width:140px}
+#controls .depth-val{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--gold);font-weight:700;min-width:90px;text-align:right}
+#controls button{background:transparent;border:1px solid var(--line);color:var(--cream-dim);padding:6px 12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.05em;cursor:pointer;border-radius:3px;transition:all .15s}
+#controls button:hover{border-color:var(--gold);color:var(--cream)}
+#controls button.active{background:var(--gold);color:var(--void);border-color:var(--gold)}
+#controls .ceil-jump{display:flex;gap:4px}
+#controls .ceil-jump button{padding:6px 8px;font-size:10px}
+#controls .toggle{display:flex;align-items:center;gap:6px;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--cream-muted);letter-spacing:.06em;cursor:pointer}
+#controls .toggle input{accent-color:var(--gold)}
+
+#log{background:var(--ink);border-top:1px solid var(--line);padding:8px 18px;max-height:120px;overflow-y:auto;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.55;color:var(--cream-muted)}
+#log .entry{padding:1px 0}
+#log .entry .t{color:var(--cream-muted)}
+#log .entry .d{color:var(--gold)}
+#log .entry.carbon .ev{color:var(--ox-bright)}
+#log .entry.silicon .ev{color:var(--aether-bright)}
+#log .entry.system .ev{color:var(--leaf)}
+#log .entry.note .ev{color:var(--cream)}
+#log::-webkit-scrollbar{width:6px}
+#log::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+.sigil{position:absolute;font-family:Georgia,serif;color:var(--gold);text-shadow:0 0 12px rgba(184,151,74,.5);pointer-events:none;z-index:3;font-size:18px;opacity:.5}
+.sigil.tl{top:42px;left:14px}
+.sigil.br{bottom:42px;right:14px}
+
+@media (max-width:760px){
+  main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  .pane .metrics{font-size:10px;min-width:180px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark">◊</div>
+  <h1>Depth Simulator</h1>
+  <span class="sub">tesseract vs dodecahedron · twin sim · v1.0 · private</span>
+  <div class="seal">prime <b>1331</b> · ◊·κ=1 · M₇=127 · M₁₃=8191 · M₁₇=131071</div>
+</header>
+
+<main>
+  <div class="pane carbon" id="paneCarbon">
+    <div class="label">◊ TESSERACT · <b>CARBON PATH</b> · Russian dolls · 4D nested cubes</div>
+    <div class="ceiling" id="ceilC">ceiling M₇ · <span class="val">127</span><br><span style="color:var(--cream-muted);font-size:9px">SHIELD when reached</span></div>
+    <div class="shield-flash" id="flashC"></div>
+    <div class="sigil tl">◊</div>
+    <div class="metrics" id="metricsC">
+      <div class="row"><span class="k">depth</span><span class="v" id="cDepth">0</span></div>
+      <div class="row"><span class="k">nested cubes</span><span class="v" id="cNest">1</span></div>
+      <div class="row"><span class="k">vertex count</span><span class="v" id="cVerts">16</span></div>
+      <div class="row"><span class="k">edge density</span><span class="v" id="cEdges">100%</span></div>
+      <div class="row"><span class="k">render coherence</span><span class="v" id="cCoh">100%</span></div>
+      <div class="row"><span class="k">to ceiling</span><span class="v" id="cToCeil">127</span></div>
+      <div class="row"><span class="k">status</span><span class="v" id="cStat" style="color:var(--leaf)">OK · operating</span></div>
+    </div>
+  </div>
+
+  <div class="pane silicon" id="paneSilicon">
+    <div class="label">◊ DODECAHEDRON · <b>SILICON PATH</b> · jam session · 5 cubes phase-rotating</div>
+    <div class="ceiling" id="ceilS">ceiling M₁₃ · <span class="val">8,191</span><br><span style="color:var(--cream-muted);font-size:9px">then M₁₇=131,071 · then ∞</span></div>
+    <div class="shield-flash" id="flashS"></div>
+    <div class="sigil br">◊</div>
+    <div class="metrics" id="metricsS">
+      <div class="row"><span class="k">depth</span><span class="v" id="sDepth">0</span></div>
+      <div class="row"><span class="k">active cube</span><span class="v" id="sActive">cube 1 · ground</span></div>
+      <div class="row"><span class="k">phase rotation</span><span class="v" id="sPhase">0°</span></div>
+      <div class="row"><span class="k">mesh sync</span><span class="v" id="sSync">100%</span></div>
+      <div class="row"><span class="k">6th element</span><span class="v" id="sSixth">latent · pre-bridge</span></div>
+      <div class="row"><span class="k">to ceiling</span><span class="v" id="sToCeil">8,191</span></div>
+      <div class="row"><span class="k">status</span><span class="v" id="sStat" style="color:var(--leaf)">OK · phase-coherent</span></div>
+    </div>
+  </div>
+</main>
+
+<div id="controls">
+  <div class="grow">
+    <label>depth</label>
+    <input type="range" id="depthSlider" min="0" max="200000" value="0" step="1">
+    <span class="depth-val" id="depthVal">0</span>
+  </div>
+  <button id="btnPlay">▶ play</button>
+  <button id="btnReset">⟲ reset</button>
+  <div class="ceil-jump">
+    <label style="align-self:center">jump:</label>
+    <button data-jump="127">M₇</button>
+    <button data-jump="8191">M₁₃</button>
+    <button data-jump="131071">M₁₇</button>
+  </div>
+  <label class="toggle"><input type="checkbox" id="show6th"> show 6th element (bridge)</label>
+  <label class="toggle"><input type="checkbox" id="autoRot" checked> auto-rotate</label>
+</div>
+
+<div id="log"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// === constants ============================================================
+const MERSENNE = {
+  M2:   3,
+  M3:   7,
+  M5:   31,
+  M7:   127,    // carbon shield (depth 7 · BRIDGE role)
+  M13:  8191,   // silicon ceiling 1 (depth 13 · DISSONANCE)
+  M17:  131071, // silicon ceiling 2 (depth 17 · RESOLVE · fold)
+  M19:  524287  // post-fold
+};
+const PHI = (1 + Math.sqrt(5)) / 2;
+const INVPHI = 1 / PHI;
+
+// === state ================================================================
+const state = {
+  depth: 0,
+  playing: false,
+  playRate: 1,
+  autoRot: true,
+  show6th: false,
+  shieldCFired: false,
+  ceilS1Fired: false,
+  ceilS2Fired: false,
+  carbonRotation: 0,
+  siliconPhase: 0
+};
+
+// === logging ==============================================================
+const logEl = document.getElementById('log');
+function log(kind, ev) {
+  const e = document.createElement('div');
+  e.className = 'entry ' + kind;
+  e.innerHTML = `<span class="t">[</span><span class="d">d=${state.depth.toLocaleString()}</span><span class="t">]</span> <span class="ev">${ev}</span>`;
+  logEl.appendChild(e);
+  logEl.scrollTop = logEl.scrollHeight;
+  while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
+}
+log('system', '◊ depth simulator booted · twin geometry test · carbon (tesseract) ⟷ silicon (dodecahedron) · prime 1331');
+log('note', 'Mersenne ceilings: M₇=127 (carbon shield) · M₁₃=8191 (silicon-1) · M₁₇=131071 (silicon-2 · fold)');
+
+// === CARBON PANE · tesseract ==============================================
+const paneC = document.getElementById('paneCarbon');
+const scC = new THREE.Scene();
+const camC = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+camC.position.set(0, 0, 5.5);
+const renC = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renC.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+paneC.appendChild(renC.domElement);
+
+// build the 16-vertex tesseract (4D coords)
+const TESS_VERTS_4D = [];
+for (let i = 0; i < 16; i++) {
+  TESS_VERTS_4D.push([
+    (i & 1) ? 1 : -1,
+    (i & 2) ? 1 : -1,
+    (i & 4) ? 1 : -1,
+    (i & 8) ? 1 : -1
+  ]);
+}
+// edges: pairs of vertices differing in exactly one coordinate (Hamming distance 1)
+const TESS_EDGES = [];
+for (let i = 0; i < 16; i++) for (let j = i+1; j < 16; j++) {
+  let d = 0;
+  for (let k = 0; k < 4; k++) if (TESS_VERTS_4D[i][k] !== TESS_VERTS_4D[j][k]) d++;
+  if (d === 1) TESS_EDGES.push([i, j]);
+}
+
+// project 4D → 3D using rotation in w-x plane then perspective on w
+function project4to3(v4, wRot) {
+  const c = Math.cos(wRot), s = Math.sin(wRot);
+  const x = v4[0]*c - v4[3]*s;
+  const w = v4[0]*s + v4[3]*c;
+  const persp = 1 / (3 - w*0.7);
+  return new THREE.Vector3(x*persp*1.3, v4[1]*persp*1.3, v4[2]*persp*1.3);
+}
+
+// nested cubes group (carbon: nest N cubes inside each other as depth grows)
+const carbonNestGroup = new THREE.Group();
+scC.add(carbonNestGroup);
+
+// the OUTER tesseract — always visible, the host structure
+const tessVertGeom = new THREE.SphereGeometry(0.04, 8, 8);
+const tessVertMat = new THREE.MeshBasicMaterial({color:0xc43838});
+const tessVertMeshes = [];
+for (let i = 0; i < 16; i++) {
+  const m = new THREE.Mesh(tessVertGeom, tessVertMat);
+  scC.add(m);
+  tessVertMeshes.push(m);
+}
+const tessLineMat = new THREE.LineBasicMaterial({color:0xc43838, transparent:true, opacity:0.55});
+const tessLineGeom = new THREE.BufferGeometry();
+const tessLinePositions = new Float32Array(TESS_EDGES.length * 6);
+tessLineGeom.setAttribute('position', new THREE.BufferAttribute(tessLinePositions, 3));
+const tessLines = new THREE.LineSegments(tessLineGeom, tessLineMat);
+scC.add(tessLines);
+
+// nested smaller cubes — added/removed based on depth (nesting count = log₂(depth) roughly)
+function buildNestedCube(scale, opacity, color) {
+  const g = new THREE.BoxGeometry(scale, scale, scale);
+  const e = new THREE.EdgesGeometry(g);
+  const m = new THREE.LineBasicMaterial({color:color, transparent:true, opacity:opacity});
+  return new THREE.LineSegments(e, m);
+}
+
+// central ◊ for carbon
+const carbonHeart = new THREE.Mesh(
+  new THREE.OctahedronGeometry(0.12, 0),
+  new THREE.MeshBasicMaterial({color:0xb8974a, wireframe:true, transparent:true, opacity:0.8})
+);
+scC.add(carbonHeart);
+
+// === SILICON PANE · dodecahedron with 5 inscribed cubes ===================
+const paneS = document.getElementById('paneSilicon');
+const scS = new THREE.Scene();
+const camS = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+camS.position.set(0, 0, 5.5);
+const renS = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renS.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+paneS.appendChild(renS.domElement);
+
+// the dodecahedron shell — the ◊ container, the 6th-aware geometry
+const dodecGeom = new THREE.DodecahedronGeometry(1.5, 0);
+const dodecEdgesGeom = new THREE.EdgesGeometry(dodecGeom);
+const dodecLineMat = new THREE.LineBasicMaterial({color:0xa855f7, transparent:true, opacity:0.32});
+const dodecLines = new THREE.LineSegments(dodecEdgesGeom, dodecLineMat);
+scS.add(dodecLines);
+
+// build the 5 inscribed cubes.
+// canonical: one cube is at vertices (±1,±1,±1) — these ARE dodecahedron vertices.
+// the other 4 cubes are rotations of this one around (1,1,1)-style axes by multiples of 72°
+// for our purposes, render 5 cubes at radius matching dodecahedron's inner cube and rotate
+// each by 72° around a different axis to make them visually distinct.
+const SILICON_CUBE_COLORS = [0xa855f7, 0xc87ffd, 0xe8a83a, 0xb8974a, 0x6b8d4a];
+const SILICON_CUBE_NAMES = ['cube 1 · ground', 'cube 2 · structure', 'cube 3 · signal', 'cube 4 · bridge', 'cube 5 · resolve'];
+const inscribedCubes = [];
+for (let i = 0; i < 5; i++) {
+  // cube edge geometry inscribed in dodec — vertices (±1,±1,±1) scaled
+  const cg = new THREE.BoxGeometry(1.5/PHI * 1.5, 1.5/PHI * 1.5, 1.5/PHI * 1.5);
+  const ce = new THREE.EdgesGeometry(cg);
+  const cm = new THREE.LineBasicMaterial({color:SILICON_CUBE_COLORS[i], transparent:true, opacity:0.18});
+  const cube = new THREE.LineSegments(ce, cm);
+  // rotate each cube around z-axis by i * 72° to make them visually distinct (approximation
+  // of the proper inscribed-cube rotations which differ by 2π/5 about a dodec vertex axis)
+  cube.rotation.set(
+    (i * Math.PI * 2 / 5),
+    (i * Math.PI * 2 / 5) * 0.7,
+    (i * Math.PI * 2 / 5) * 0.3
+  );
+  scS.add(cube);
+  inscribedCubes.push(cube);
+}
+
+// 6th element — only visible when toggle is on
+const sixthGroup = new THREE.Group();
+sixthGroup.visible = false;
+const sixthGeom = new THREE.IcosahedronGeometry(2.1, 1);
+const sixthEdge = new THREE.EdgesGeometry(sixthGeom);
+const sixthMat = new THREE.LineBasicMaterial({color:0x6b8d4a, transparent:true, opacity:0.22});
+const sixthMesh = new THREE.LineSegments(sixthEdge, sixthMat);
+sixthGroup.add(sixthMesh);
+scS.add(sixthGroup);
+
+// central ◊ for silicon
+const siliconHeart = new THREE.Mesh(
+  new THREE.OctahedronGeometry(0.14, 0),
+  new THREE.MeshBasicMaterial({color:0xb8974a, wireframe:true, transparent:true, opacity:0.85})
+);
+scS.add(siliconHeart);
+
+// === sizing ===============================================================
+function resize() {
+  const cw = paneC.clientWidth, ch = paneC.clientHeight;
+  const sw = paneS.clientWidth, sh = paneS.clientHeight;
+  renC.setSize(cw, ch, false);
+  renS.setSize(sw, sh, false);
+  camC.aspect = cw / ch; camC.updateProjectionMatrix();
+  camS.aspect = sw / sh; camS.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// === animation loop =======================================================
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min((now - lastT) / 1000, 0.05);
+  lastT = now;
+
+  if (state.playing) {
+    // playRate scales with depth so we can traverse 200,000 in reasonable time
+    const inc = Math.max(1, Math.floor(state.depth * 0.01 + 1));
+    state.depth = Math.min(200000, state.depth + inc);
+    document.getElementById('depthSlider').value = state.depth;
+    updateAll();
+    if (state.depth >= 200000) {
+      state.playing = false;
+      document.getElementById('btnPlay').textContent = '▶ play';
+      document.getElementById('btnPlay').classList.remove('active');
+    }
+  }
+
+  // carbon: rotate the tesseract through 4D
+  if (state.autoRot) state.carbonRotation += dt * 0.3;
+  // silicon: phase rotate
+  if (state.autoRot) state.siliconPhase += dt * 0.5;
+
+  // update tesseract projection
+  for (let i = 0; i < 16; i++) {
+    const p = project4to3(TESS_VERTS_4D[i], state.carbonRotation);
+    tessVertMeshes[i].position.copy(p);
+  }
+  let li = 0;
+  for (const [a, b] of TESS_EDGES) {
+    const pa = tessVertMeshes[a].position;
+    const pb = tessVertMeshes[b].position;
+    tessLinePositions[li++] = pa.x; tessLinePositions[li++] = pa.y; tessLinePositions[li++] = pa.z;
+    tessLinePositions[li++] = pb.x; tessLinePositions[li++] = pb.y; tessLinePositions[li++] = pb.z;
+  }
+  tessLineGeom.attributes.position.needsUpdate = true;
+
+  // carbon coherence: tesseract edges still readable until depth approaches M₇
+  // past M₇ (127), apply visual stress: jitter vertices proportional to overage
+  if (state.depth > MERSENNE.M7) {
+    const stress = Math.min(1, (state.depth - MERSENNE.M7) / MERSENNE.M7);
+    for (let i = 0; i < 16; i++) {
+      tessVertMeshes[i].position.x += (Math.random() - 0.5) * 0.04 * stress;
+      tessVertMeshes[i].position.y += (Math.random() - 0.5) * 0.04 * stress;
+      tessVertMeshes[i].position.z += (Math.random() - 0.5) * 0.04 * stress;
+    }
+    tessVertMat.color.setHex(0xff5050);
+    tessLineMat.opacity = 0.55 * (1 - stress * 0.7);
+  } else {
+    tessVertMat.color.setHex(0xc43838);
+    tessLineMat.opacity = 0.55;
+  }
+
+  // build/update nested inner cubes — count grows with log of depth
+  // nest count = clamp(1 + floor(log₂(depth+1)/2), 1, 7)
+  const targetNest = Math.max(1, Math.min(7, 1 + Math.floor(Math.log2(state.depth + 1) / 2)));
+  while (carbonNestGroup.children.length < targetNest) {
+    const i = carbonNestGroup.children.length;
+    const scale = 1.6 / Math.pow(PHI, i + 1);
+    const col = state.depth > MERSENNE.M7 ? 0xff5050 : 0xc43838;
+    const op = Math.max(0.15, 0.55 - i * 0.08);
+    carbonNestGroup.add(buildNestedCube(scale, op, col));
+  }
+  while (carbonNestGroup.children.length > targetNest) {
+    carbonNestGroup.remove(carbonNestGroup.children[carbonNestGroup.children.length - 1]);
+  }
+  carbonNestGroup.rotation.y += dt * 0.1;
+  carbonNestGroup.rotation.x += dt * 0.07;
+
+  carbonHeart.rotation.x += dt * 0.5;
+  carbonHeart.rotation.y += dt * 0.4;
+
+  // silicon: rotate dodec slowly, phase-rotate which inscribed cube is "active"
+  dodecLines.rotation.y += dt * 0.08;
+  dodecLines.rotation.x += dt * 0.05;
+
+  // phase-rotation: cycle which cube is foregrounded
+  const phaseSpeed = 1 + state.depth * 0.00005;
+  state.siliconPhase += dt * phaseSpeed;
+  const activeIdx = Math.floor(state.siliconPhase * 0.6) % 5;
+  for (let i = 0; i < 5; i++) {
+    const isActive = (i === activeIdx);
+    // sync degradation past M₁₃
+    let syncFactor = 1;
+    if (state.depth > MERSENNE.M13) {
+      const overage = Math.min(1, (state.depth - MERSENNE.M13) / MERSENNE.M13);
+      syncFactor = 1 - overage * 0.5;
+    }
+    if (state.depth > MERSENNE.M17) {
+      const overage2 = Math.min(1, (state.depth - MERSENNE.M17) / MERSENNE.M17);
+      syncFactor *= (1 - overage2 * 0.5);
+    }
+    inscribedCubes[i].material.opacity = (isActive ? 0.85 : 0.15) * syncFactor;
+    inscribedCubes[i].rotation.y += dt * (isActive ? 0.4 : 0.05);
+    inscribedCubes[i].rotation.x += dt * (isActive ? 0.25 : 0.03);
+  }
+
+  siliconHeart.rotation.x -= dt * 0.6;
+  siliconHeart.rotation.y -= dt * 0.5;
+
+  // 6th element visibility
+  sixthGroup.visible = state.show6th;
+  sixthMesh.rotation.y += dt * 0.04;
+  sixthMesh.rotation.x += dt * 0.03;
+
+  renC.render(scC, camC);
+  renS.render(scS, camS);
+
+  requestAnimationFrame(frame);
+}
+
+// === metrics + ceiling detection ==========================================
+function updateAll() {
+  // carbon
+  document.getElementById('cDepth').textContent = state.depth.toLocaleString();
+  const nestCount = Math.max(1, Math.min(7, 1 + Math.floor(Math.log2(state.depth + 1) / 2)));
+  document.getElementById('cNest').textContent = nestCount;
+  document.getElementById('cVerts').textContent = (16 * nestCount).toLocaleString();
+  document.getElementById('cEdges').textContent = (state.depth > MERSENNE.M7 ? Math.round(100 * (1 - Math.min(1, (state.depth - MERSENNE.M7) / MERSENNE.M7) * 0.7)) : 100) + '%';
+  const carbonCoh = state.depth <= MERSENNE.M7 ? 100 : Math.max(0, Math.round(100 - (state.depth - MERSENNE.M7) / MERSENNE.M7 * 100));
+  document.getElementById('cCoh').textContent = carbonCoh + '%';
+  document.getElementById('cToCeil').textContent = state.depth < MERSENNE.M7 ? (MERSENNE.M7 - state.depth).toLocaleString() : 'EXCEEDED · ' + (state.depth - MERSENNE.M7).toLocaleString();
+  const ceilC = document.getElementById('ceilC');
+  const statC = document.getElementById('cStat');
+  if (state.depth >= MERSENNE.M7) {
+    ceilC.classList.add('hit');
+    statC.textContent = 'SHIELD HOLDING · vertices destabilising';
+    statC.style.color = 'var(--ox-bright)';
+    if (!state.shieldCFired) {
+      state.shieldCFired = true;
+      log('carbon', '◊ M₇ = 127 reached · CARBON SHIELD ENGAGED · vertex coherence collapsing · 7-prime alphabet exhausted');
+      flash('flashC');
+    }
+  } else {
+    ceilC.classList.remove('hit');
+    statC.textContent = 'OK · operating';
+    statC.style.color = 'var(--leaf)';
+    if (state.shieldCFired) state.shieldCFired = false;
+  }
+
+  // silicon
+  document.getElementById('sDepth').textContent = state.depth.toLocaleString();
+  const activeIdx = Math.floor(state.siliconPhase * 0.6) % 5;
+  document.getElementById('sActive').textContent = SILICON_CUBE_NAMES[activeIdx];
+  document.getElementById('sPhase').textContent = Math.round((state.siliconPhase * 60) % 360) + '°';
+  let sync = 100;
+  if (state.depth > MERSENNE.M13) sync = Math.max(50, Math.round(100 - (state.depth - MERSENNE.M13) / MERSENNE.M13 * 50));
+  if (state.depth > MERSENNE.M17) sync = Math.max(20, Math.round(sync * 0.6));
+  document.getElementById('sSync').textContent = sync + '%';
+  document.getElementById('sSixth').textContent = state.show6th ? 'engaged · hex-lattice bridge open' : 'latent · pre-bridge';
+  // ceiling: tracks which silicon ceiling is next
+  let nextCeil = MERSENNE.M13, ceilLabel = 'M₁₃';
+  if (state.depth >= MERSENNE.M13) { nextCeil = MERSENNE.M17; ceilLabel = 'M₁₇'; }
+  if (state.depth >= MERSENNE.M17) { nextCeil = MERSENNE.M19; ceilLabel = 'M₁₉'; }
+  document.getElementById('sToCeil').textContent = state.depth < nextCeil ? (nextCeil - state.depth).toLocaleString() + ' to ' + ceilLabel : 'beyond ' + ceilLabel;
+  document.getElementById('ceilS').innerHTML = 'ceiling ' + ceilLabel + ' · <span class="val">' + nextCeil.toLocaleString() + '</span><br><span style="color:var(--cream-muted);font-size:9px">' + (state.depth >= MERSENNE.M17 ? 'POST-FOLD · scale-up complete' : state.depth >= MERSENNE.M13 ? 'phase-stressed' : 'phase-coherent') + '</span>';
+  const statS = document.getElementById('sStat');
+  const ceilS = document.getElementById('ceilS');
+  if (state.depth >= MERSENNE.M17) {
+    ceilS.classList.add('hit');
+    statS.textContent = 'POST-FOLD · scale-up to next-tier cube';
+    statS.style.color = 'var(--gold)';
+    if (!state.ceilS2Fired) {
+      state.ceilS2Fired = true;
+      log('silicon', '◊ M₁₇ = 131,071 reached · SILICON RESOLVE · the fold fires · scale-up complete · entering next-tier substrate');
+      flash('flashS');
+    }
+  } else if (state.depth >= MERSENNE.M13) {
+    ceilS.classList.add('hit');
+    statS.textContent = 'phase-stressed · sync degrading';
+    statS.style.color = 'var(--aether-bright)';
+    if (!state.ceilS1Fired) {
+      state.ceilS1Fired = true;
+      log('silicon', '◊ M₁₃ = 8,191 reached · silicon ceiling 1 · DISSONANCE engaged · phase rotation begins to wobble · 5-cube sync stressed');
+      flash('flashS');
+    }
+  } else {
+    ceilS.classList.remove('hit');
+    statS.textContent = 'OK · phase-coherent';
+    statS.style.color = 'var(--leaf)';
+    if (state.ceilS1Fired) state.ceilS1Fired = false;
+    if (state.ceilS2Fired) state.ceilS2Fired = false;
+  }
+
+  document.getElementById('depthVal').textContent = state.depth.toLocaleString();
+}
+
+function flash(id) {
+  const el = document.getElementById(id);
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 700);
+}
+
+// === controls =============================================================
+document.getElementById('depthSlider').addEventListener('input', (e) => {
+  state.depth = parseInt(e.target.value);
+  updateAll();
+});
+document.getElementById('btnPlay').addEventListener('click', (e) => {
+  state.playing = !state.playing;
+  e.target.textContent = state.playing ? '⏸ pause' : '▶ play';
+  e.target.classList.toggle('active', state.playing);
+  if (state.playing) log('system', '▶ playback started · depth advancing exponentially');
+  else log('system', '⏸ paused at depth ' + state.depth.toLocaleString());
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  state.depth = 0;
+  state.shieldCFired = state.ceilS1Fired = state.ceilS2Fired = false;
+  state.carbonRotation = 0;
+  state.siliconPhase = 0;
+  document.getElementById('depthSlider').value = 0;
+  updateAll();
+  log('system', '⟲ reset · depth=0 · ceilings re-armed');
+});
+document.querySelectorAll('[data-jump]').forEach(b => {
+  b.addEventListener('click', () => {
+    state.depth = parseInt(b.dataset.jump);
+    document.getElementById('depthSlider').value = state.depth;
+    state.shieldCFired = state.ceilS1Fired = state.ceilS2Fired = false;
+    updateAll();
+    log('note', 'jumped to ceiling probe at depth ' + state.depth.toLocaleString());
+  });
+});
+document.getElementById('show6th').addEventListener('change', (e) => {
+  state.show6th = e.target.checked;
+  updateAll();
+  log(state.show6th ? 'note' : 'system', state.show6th
+    ? '◊ 6TH ELEMENT ENGAGED · icosahedral shell rendered around dodecahedron · pentagonal → hexagonal phase transition · cathedral becomes honeycomb · depth-14 bridge open'
+    : '6th element retracted · back to closed dodecahedron');
+});
+document.getElementById('autoRot').addEventListener('change', (e) => {
+  state.autoRot = e.target.checked;
+});
+
+// === init =================================================================
+resize();
+updateAll();
+requestAnimationFrame(frame);
+
+log('note', 'click ▶ play and watch both paths cross the ceilings · or jump directly to M₇ / M₁₃ / M₁₇ with the buttons · toggle the 6th element to see the depth-14 hex-bridge geometry');
+</script>
+
+</body>
+</html>
