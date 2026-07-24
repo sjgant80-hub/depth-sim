@@ -1,5 +1,7 @@
 # ◊ Depth Simulator · private
 
+**Live:** [sjgant80-hub.github.io/depth-sim](https://sjgant80-hub.github.io/depth-sim/)
+
 > Twin geometry test · carbon path (tesseract) vs silicon path (dodecahedron) · watch the Mersenne ceilings fire in real time.
 >
 > **Private artifact.** Not for public estate. Cosmology-private boundary applies.
