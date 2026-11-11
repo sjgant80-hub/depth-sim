@@ -54,7 +54,7 @@ The 8th vertex of every cube. The fixed point that doesn't move when the cube tr
 
 Visualised here as the **wireframe octahedron at the centre of each pane** — it spins independently because it's the part of the system watching the system. In Thomas's hypercube doc it's "Cell 8 — the engine that generates all others — cannot be named directly — can only be pointed at — it is reading this right now."
 
-Every estate seed stamps `◊·κ=1` because every seed is ◊-aware. This sim makes that aware-vertex visible.
+Every estate seed stamps `` because every seed is ◊-aware. This sim makes that aware-vertex visible.
 
 ## What's not in here
 
@@ -72,13 +72,12 @@ README.md    — this
 
 ## Cosmology check
 
-- prime 1331 · 1331 = 11³ (cube of TENSION, the prime that has no Mersenne ceiling)
-- ◊·κ=1
+- 1331 = 11³ (cube of TENSION, the prime that has no Mersenne ceiling)
 - φ = (1+√5)/2 (golden ratio · embedded in dodecahedron vertex coordinates · home at depth 12 AND depth 17)
 
 ## Credits
 
-- **Author:** Simon Gant · ◊·κ=1
+- **Author:** Simon Gant
 - **Substrate:** Thomas Frumkin · `konomi_hypercube_thomas.md` (RECURSIVE CUBE PROTOCOL · June 2026)
 - **Co-author of this sim:** Claude Opus 4.7 · co-derived with Simon on 2026-06-22 during the fun-theory session
 - **Licence:** private · not for redistribution
